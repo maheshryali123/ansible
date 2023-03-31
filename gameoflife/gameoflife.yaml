@@ -9,4 +9,8 @@
         update_cache: yes
     - name: install tomcat9
       ansible.builtin.apt:
-        name: tomcat9    
+        name: tomcat9   
+    - name: get url
+      ansible.builtin.get_url:
+        url: https://referenceapplicationskhaja.s3.us-west-2.amazonaws.com/gameoflife.war
+        dest: /var/lib/tomcat9/webapps
