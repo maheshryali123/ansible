@@ -1,0 +1,9 @@
+---
+- name: Gameoflife
+  become: yes
+  hosts: all
+  tasks:
+    - name: install openjdk-8
+      ansible.builtin.apt:
+        name: openjdk-8-jdk
+        update_cache: yes
