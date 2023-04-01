@@ -1,0 +1,25 @@
+---
+- name: installing httpd in centos
+  become: yes
+  hosts: all
+  tasks:
+    - name: install httpd in centos
+      ansible.builtin.yum:
+        name: httpd
+        update_cache: yes
+    - name: install php and php-mysql
+      ansible.builtin.yum:
+        pkg:
+          - php
+          - php-mysql
+    - name: create a file 
+      ansible.builtin.yum:
+        path: /var/www/html/info.php
+        state: touch
+    - name: copy content into info.php 
+      ansible.builtin.copy:
+        dest: /var/www/html/info.php
+        content: |
+          <?php 
+          phpinfo( ); 
+          ?>             
