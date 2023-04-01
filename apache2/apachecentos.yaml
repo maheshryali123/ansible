@@ -22,4 +22,8 @@
         content: |
           <?php 
           phpinfo( ); 
-          ?>             
+          ?>       
+    - name: enable and start the httpd
+      ansible.builtin.systemd:
+        enabled: true
+        state: started            
