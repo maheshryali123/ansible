@@ -1,0 +1,20 @@
+---
+- name: installing tomcat
+  become: yes
+  hosts: all
+  tasks:
+    - name: update packages and install java
+      ansible.builtin.apt:
+        name: openjdk-11-jdk
+        update_cache: yes
+    - name: create an user and add group
+      ansible.builtin.user:
+        name: tomcat
+        create_home: true
+        group: tomcat
+        home: /opt/tomcat
+        shell: /bin/false
+    - name: get tomcat url
+      ansible.builtin.get_url:
+        dest: /tmp
+        url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz        
