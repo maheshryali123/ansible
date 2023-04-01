@@ -13,7 +13,7 @@
           - php
           - php-mysql
     - name: create a file 
-      ansible.builtin.yum:
+      ansible.builtin.file:
         path: /var/www/html/info.php
         state: touch
     - name: copy content into info.php 
