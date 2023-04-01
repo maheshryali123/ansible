@@ -1,0 +1,81 @@
+---
+- name: wildfly
+  vars: 
+    java_version: default-jdk
+    mode_value: 0755
+  become: yes
+  hosts: all
+  tasks:
+    - name: update packages and install java
+      ansible.builtin.apt:
+        name: 
+          - "{{ java_version }}"
+          - curl
+        update_cache: yes  
+        state: present  
+    - name: groupadd
+      ansible.builtin.group:
+        name: wildfly
+        system: true
+        state: present
+    - name: adduser
+      ansible.builtin.user:
+        name: wildfly
+        shell: /sbin/nologin
+        create_home: true
+        home: /opt/wildfly
+        group: wildfly
+    - name: create adirectory
+      ansible.builtin.file:
+        path: /opt/wildfly
+        owner: wildfly
+        group: wildfly
+        mode: "{{ mode_value}}"     
+    - name: get the code
+      ansible.builtin.unarchive:  
+        src: https://github.com/wildfly/wildfly/releases/download/27.0.1.Final/wildfly-27.0.1.Final.tar.gz
+        dest: /opt/wildfly 
+        remote_src: yes  
+    - name: copy the files to folder
+      ansible.builtin.command: "sudo sh -c 'cp /opt/wildfly/wildfly-27.0.1.Final/* /opt/wildfly/'"
+    - name: create file
+      ansible.builtin.file:
+        path: /etc/wildfly
+        state: directory  
+    - name: copy the file
+      ansible.builtin.copy:
+        remote_src: true
+        src: /opt/wildfly/docs/contrib/scripts/systemd/wildfly.conf
+        dest: /etc/wildfly  
+    - name: copy the file
+      ansible.builtin.copy:
+        remote_src: true
+        src: /opt/wildfly/docs/contrib/scripts/systemd/wildfly.service
+        dest: /etc/systemd/system/
+    - name: copy the file
+      ansible.builtin.copy:
+        remote_src: true
+        src: /opt/wildfly/docs/contrib/scripts/systemd/launch.sh
+        dest: /opt/wildfly/bin/
+    - name: command to permissions chmod
+      ansible.builtin.command: "sudo sh -c 'chmod +x /opt/wildfly/bin/launch.sh'"  
+    - name: command to permissions chown
+      ansible.builtin.command: "sudo sh -c 'chown -R wildfly:wildfly /opt/wildfly'"         
+    - name: to reload daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+    - name: for starting wildfly
+      ansible.builtin.systemd:
+        name: wildfly
+        state: started
+    - name: for wildfly enable
+      ansible.builtin.systemd:
+        name: wildfly
+        enabled: true    
+
+
+
+      
+
+            
+           

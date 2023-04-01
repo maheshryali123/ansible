@@ -1,0 +1,24 @@
+---
+- name: Ha Proxy
+  become: yes
+  hosts: all
+  tasks:
+    - name: update the package
+      ansible.builtin.apt:
+        name: haproxy
+        state: present
+        update_cache: true
+    - name:  revert to the default settings
+      ansible.builtin.copy:
+        remote_src: true
+        src: /etc/haproxy/haproxy.cfg
+        dest: /etc/haproxy/haproxy.cfg.bk  
+    - name: edit haproxy.cfg
+      ansible.builtin.copy:
+        remote_src: false
+        src: haproxy.cfg
+        dest: /etc/haproxy/haproxy.cfg  
+    - name: restart the haproxy
+      ansible.builtin.systemd:
+        name: haproxy
+        state: restarted    

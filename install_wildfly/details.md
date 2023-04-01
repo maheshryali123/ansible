@@ -1,0 +1,1 @@
+The sh -c command is used to run a shell command in a new shell process. The sh command is a shell interpreter that reads and executes commands from a script or from the command line. The -c option is used to specify a command to be executed by the shell
