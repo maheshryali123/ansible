@@ -20,4 +20,8 @@
     - name: get tomcat url
       ansible.builtin.get_url:
         dest: /tmp
-        url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz        
+        url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz   
+    - name: untar the file
+      ansible.builtin.unarchive:         
+        src: /tmp/apache-tomcat-9.0.73.tar.gz
+        dest: /opt/tomcat
