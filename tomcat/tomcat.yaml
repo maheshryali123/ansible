@@ -1,42 +1,30 @@
 ---
-- name: installing tomcat
+- name: Installing tomcat
   become: yes
   hosts: all
+  vars:
+    tomcat_homedir: /opt/tomcat
+    java_version: java-1.8.0-openjdk-devel
+    system_user: tomcat
+    tomcat_url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.56/bin/apache-tomcat-9.0.56.tar.gz
   tasks:
-    - name: update packages and install java
-      ansible.builtin.apt:
-        name: openjdk-11-jdk
-        update_cache: yes
-    - name: create a group 
-      ansible.builtin.group:
-        name: tomcat    
-    - name: create an user and add group
+    - name: Installing java11
+      ansible.builtin.yum:
+        name: "{{ java_version }}"
+        update_cache: true
+    - name: Add user tomcat
       ansible.builtin.user:
-        name: tomcat
         create_home: true
-        group: tomcat
-        home: /opt/tomcat
-        shell: /bin/false
-    - name: get tomcat url
+        home: "{{ tomcat_homedir }}"
+        name: "{{ system_user }}"
+        shell: /bin/false    
+    - name: Get tomcat url to /tmp
       ansible.builtin.get_url:
         dest: /tmp
-        url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz   
-    - name: untar the file
-      ansible.builtin.unarchive:         
-        src: /tmp/apache-tomcat-9.0.73.tar.gz
+        url: "{{ tomcat_url }}"    
+    - name: unarchive the tomcat url and copy to /opt/tomcat
+      ansible.builtin.unarchive:
+        src: /tmp
         dest: /opt/tomcat
         remote_src: true
-    - name: create a symlink
-      ansible.builtin.file:
-        src: /opt/tomcat/apache-tomcat-9.0.73
-        dest:  /opt/tomcat/latest
-        owner: tomcat
-        group: tomcat
-        state: link    
-    - name: change ownership 
-      ansible.builtin.file:
-        path: /opt/tomcat
-        owner: tomcat
-        group: tomcat
-        mode: '0644'  
-        recurse: true  
+        
