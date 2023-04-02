@@ -33,3 +33,10 @@
         owner: tomcat
         group: tomcat
         state: link    
+    - name: change ownership 
+      ansible.builtin.file:
+        path: /opt/tomcat
+        owner: tomcat
+        group: tomcat
+        mode: '0644'  
+        recurse: true  
