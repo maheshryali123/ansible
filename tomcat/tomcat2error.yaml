@@ -1,0 +1,57 @@
+---
+- name: Installing tomcat
+  become: yes
+  hosts: all
+  vars:
+    tomcat_homedir: /opt/tomcat
+    java_version: java-1.8.0-openjdk-devel
+    system_user: tomcat
+    tomcat_url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz
+  tasks:
+    - name: Installing java11
+      ansible.builtin.yum:
+        name: "{{ java_version }}"
+        update_cache: true
+    - name: Add user tomcat
+      ansible.builtin.user:
+        create_home: true
+        home: "{{ tomcat_homedir }}"
+        name: "{{ system_user }}"
+        shell: /bin/false   
+    - name: Get tomcat url to /tmp
+      ansible.builtin.get_url:
+        dest: /tmp
+        url: "{{ tomcat_url }}"    
+    - name: unarchive the tomcat url and copy to /opt/tomcat
+      ansible.builtin.unarchive:
+        src: /tmp/apache-tomcat-9.0.73.tar.gz
+        dest: /tmp
+        remote_src: true
+    - name: copy to /opt/tomcat
+      ansible.builtin.copy:
+        src: /tmp/apache-tomcat-9.0.73
+        dest: /opt/tomcat
+        remote_src: true
+    - name: create tomcat group
+      ansible.builtin.group:
+        name: tomcat
+    - name: change ownership permissions
+      ansible.builtin.file:
+        path: /opt/tomcat
+        state: directory
+        owner: tomcat
+        group: tomcat
+        recurse: yes  
+        mode: '0777'   
+    - name: Debug the directory
+      ansible.builtin.debug:
+        msg: "{{ item }}"  
+      with_fileglob:
+        - "{{ tomcat_homedir }}/bin/*.sh"    
+    - name: Giving all execute permissions to all shell files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        mode: "+x"
+      with_fileglob:
+        - "{{ tomcat_homedir }}/bin/catalina.sh"     
+        

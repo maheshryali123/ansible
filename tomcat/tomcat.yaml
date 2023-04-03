@@ -1,30 +1,64 @@
 ---
-- name: Installing tomcat
+- name: Installing tomcat on ubuntu
   become: yes
   hosts: all
   vars:
-    tomcat_homedir: /opt/tomcat
-    java_version: java-1.8.0-openjdk-devel
+    java_version: openjdk-11-jdk
     system_user: tomcat
-    tomcat_url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.56/bin/apache-tomcat-9.0.56.tar.gz
+    tomcat_url: https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.7/bin/apache-tomcat-10.1.7.tar.gz
+    user_homedir: /opt/tomcat/ 
   tasks:
-    - name: Installing java11
-      ansible.builtin.yum:
+    - name: Installing java 11 
+      ansible.builtin.apt:
         name: "{{ java_version }}"
         update_cache: true
-    - name: Add user tomcat
+    - name: Creating a system user
       ansible.builtin.user:
         create_home: true
-        home: "{{ tomcat_homedir }}"
-        name: "{{ system_user }}"
-        shell: /bin/false    
-    - name: Get tomcat url to /tmp
-      ansible.builtin.get_url:
-        dest: /tmp
-        url: "{{ tomcat_url }}"    
-    - name: unarchive the tomcat url and copy to /opt/tomcat
+        home: "{{ user_homedir }}"
+        name: "{{ system_user }}"    
+        shell: /bin/false
+    - name: create a tomcat group
+      ansible.builtin.group:
+        name: "{{ system_user }}"  
+    - name: unarchive the tar file
       ansible.builtin.unarchive:
-        src: /tmp
-        dest: /opt/tomcat
+        src: "{{ tomcat_url }}"
+        dest: "{{ user_homedir }}"
         remote_src: true
+    - name: create symlink
+      ansible.builtin.file:
+        src: "{{ user_homedir }}/apache-tomcat-10.1.7"
+        dest: "{{ user_homedir }}/latest"
+        owner: "{{ system_user }}"
+        group: "{{ system_user }}"
+        state: link
+    - name: change ownership permissions
+      ansible.builtin.file:
+        path: "{{ user_homedir}}"
+        owner: tomcat
+        group: tomcat
+        mode: '0777'   
+    - name: copying files
+      ansible.builtin.copy:
+        src: "{{ user_homedir }}/apache-tomcat-10.1.7/"   
+        dest: "{{ user_homedir }}" 
+        owner: tomcat
+        group: tomcat
+        remote_src: true    
+    - name: Giving execute permissions to shell files     
+      ansible.builtin.command: "sudo sh -c 'chmod +x /opt/tomcat/latest/bin/*.sh'"
+    - name: copying tomcat service file
+      ansible.builtin.copy:
+        remote_src: false
+        src: tomcat.service
+        dest: /etc/systemd/system/tomcat.service
+        owner: tomcat
+        group: tomcat
+    - name: enable and reload-daemon
+      ansible.builtin.systemd:
+        daemon-reload: true
+        enabled: true
+        name: tomcat
+        state: started       
         
