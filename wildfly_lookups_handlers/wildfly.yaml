@@ -1,0 +1,150 @@
+---
+- name: Installing tomcat in ubuntu and centos
+  become: yes
+  hosts: all
+  vars: 
+    system_user: wildfly
+    home_dir: /opt/wildfly
+  tasks: 
+    - name: Installing java 8 on centos
+      ansible.builtin.yum: 
+        name: "{{ java_version_in_centos }}"
+      when: 
+        - ansible_facts['distribution'] == 'CentOS'  
+    - name: Installing java11 on ubuntu
+      ansible.builtin.apt:
+        name: "{{ java_version_in_ubuntu }}"
+        update_cache: yes
+      when:
+        - ansible_facts['distribution'] == "Ubuntu"  
+    - name: create a group
+      ansible.builtin.group: 
+        name: "{{ system_user }}"
+    - name: create a user called wildfly
+      ansible.builtin.user:
+        name: "{{ system_user }}"
+        create_home: true
+        group: "{{ system_user }}"
+        home: "{{ home_dir }}"
+        shell: /sbin/nologin
+    - name: get the url
+      ansible.builtin.get_url:
+        url: https://download.jboss.org/wildfly/16.0.0.Final/wildfly-16.0.0.Final.tar.gz
+        dest: /tmp/
+    - name: unarchive the wildfly download url
+      ansible.builtin.unarchive:
+        src: /tmp/wildfly-16.0.0.Final.tar.gz
+        dest: /opt/
+        remote_src: true   
+    - name: create symlink
+      ansible.builtin.file:
+        src: /opt/wildfly-16.0.0.Final
+        dest: "{{ home_dir }}/latest" 
+        owner: "{{ system_user }}"
+        group: "{{ system_user }}"
+        state: link
+    - name: Change ownership permissions 
+      ansible.builtin.file:
+        path: "{{ home_dir }}"
+        owner: "{{ system_user }}"
+        group: "{{ system_user }}"
+        recurse: yes
+    - name: create a directory wildfly in etc folder
+      ansible.builtin.file:
+        path: /etc/wildfly
+        state: directory       
+    - name: copy the contents to /opt/wildfly
+      ansible.builtin.copy:
+        src: /opt/wildfly-16.0.0.Final/
+        dest: /opt/wildfly/   
+        remote_src: true 
+    - name: copy the configuration files to /etc/wildfy folder
+      ansible.builtin.copy:
+        src: /opt/wildfly/docs/contrib/scripts/systemd/wildfly.conf
+        dest: /etc/wildfly/
+        owner: "{{ system_user }}"
+        group: "{{ system_user }}"
+        remote_src: true    
+    - name: Edit the file /etc/wildfly/wildfly.conf
+      ansible.builtin.copy:
+        src: wildfly.conf
+        dest: /etc/wildfly/wildfly.conf
+        remote_src: false
+    - name: copy contents to /opt/wildfly/bin
+      ansible.builtin.copy:
+        src: /opt/wildfly/docs/contrib/scripts/systemd/launch.sh
+        dest: /opt/wildfly/bin/
+        remote_src: true    
+    - name: Giving execute permissions to shell files
+      ansible.builtin.file:
+        path: "{{ item }}"    
+        mode: "+x"
+      with_fileglob:
+        - "{{ home_dir }}/bin/*.sh"
+    - name: copy service contents
+      ansible.builtin.copy:
+        src: /opt/wildfly/docs/contrib/scripts/systemd/wildfly.service
+        dest: /etc/systemd/system/
+        remote_src: true   
+    - name: reload the start the wildfly
+      ansible.builtin.systemd:
+        daemon_reload: true
+        name: wildfly
+        state: started      
+    - name: copy the standalone-mgmt-user-properties
+      ansible.builtin.copy:
+        src: standalone-mgmt-users.properties
+        dest: /opt/wildfly-16.0.0.Final/standalone/configuration/mgmt-users.properties
+        remote_src: false
+    - name: copy the standalone-mgmt-groups-properties
+      ansible.builtin.copy:
+        src: standalone-mgmt-groups.properties
+        dest: /opt/wildfly-16.0.0.Final/standalone/configuration/mgmt-groups.properties
+        remote_src: false
+    - name: copy the domain-mgmt-users
+      ansible.builtin.copy:
+        src: domain-mgmt-users.properties
+        dest: /opt/wildfly-16.0.0.Final/domain/configuration/mgmt-users.properties   
+        remote_src: false
+    - name: copy the domain-mgmt-group
+      ansible.builtin.copy:
+        src: domain-mgmt-groups.properties
+        dest: /opt/wildfly-16.0.0.Final/domain/configuration/mgmt-groups.properties
+        remote_src: false  
+    - name: copy the contents to /etc/wildfly/wildfly.conf
+      ansible.builtin.copy:
+        src: wildfly2.conf
+        dest: /etc/wildfly/wildfly.conf
+        remote_src: false 
+    - name: change the launch.sh
+      ansible.builtin.copy:
+        src: launch.sh
+        dest: /opt/wildfly/bin/launch.sh
+        mode: "+x"
+        remote_src: false
+    - name: Restart the wildfly
+      ansible.builtin.systemd:
+        name: wildfly
+        state: restarted
+    - name: change the service file
+      ansible.builtin.copy:
+        src: wildfly.service
+        dest: /etc/systemd/system/wildfly.service
+        remote_src: false
+    - name: create a folder /var/run/wildfly
+      ansible.builtin.file:
+        path: /var/run/wildfly/
+        state: directory
+        recurse: true          
+    - name: Give ownership permissions to /var/run/wildfly
+      ansible.builtin.file:
+        path: /var/run/wildfly/
+        owner: "{{ system_user }}"
+        group: "{{ system_user }}"
+    - name: restart the service
+      ansible.builtin.systemd:
+        name: wildfly
+        daemon_reload: true
+        state: restarted
+
+                
