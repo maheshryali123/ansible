@@ -1,0 +1,79 @@
+---
+- name: Installing tomcat in ubuntu and centos
+  become: yes
+  hosts: all
+  vars:
+    systemuser: tomcat
+    tomcat_url: https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.7/bin/apache-tomcat-10.1.7.tar.gz
+  tasks:
+    - name: Fail on unsupported os
+      ansible.builtin.fail:
+        msg: This is only for ubuntu and centos
+      when:
+        - ansible_facts["distribution"] != "Ubuntu"
+        - ansible_facts["distribution"] != "CentOS" 
+    - name: Installing java 11 on ubuntu
+      ansible.builtin.apt:
+        name: "{{ java_version_ubuntu }}"
+        update_cache: yes
+      when:
+        -  ansible_facts["distribution"] == "Ubuntu"
+    - name: Installing java11 on centos
+      ansible.builtin.yum:
+        name: "{{ java_version_centos }}"
+        update_cache: yes
+      when:
+        - ansible_facts["distribution"] == "CentOS"
+    - name: Create a group called tomcat
+      ansible.builtin.group:
+        name: "{{ systemuser }}"    
+    - name: Create a system user tomcat
+      ansible.builtin.user:
+        create_home: true
+        home: /opt/tomcat       
+        name: "{{ systemuser }}"
+        group: "{{ systemuser }}"
+        shell: /bin/false
+    - name: get the tomcat url
+      ansible.builtin.get_url:
+        url: "{{ tomcat_url }}"   
+        dest: /tmp
+    - name: untar the tar file
+      ansible.builtin.unarchive:
+        src: /tmp/apache-tomcat-10.1.7.tar.gz
+        dest: /opt/tomcat
+        remote_src: yes
+    - name: create a symbolic link
+      ansible.builtin.file:
+        src: /opt/tomcat/apache-tomcat-10.1.7
+        dest: /opt/tomcat/latest
+        owner: "{{ systemuser }}"
+        group: "{{ systemuser }}"
+        state: link
+    - name: changing owner permissions
+      ansible.builtin.file:
+        path: /opt/tomcat
+        owner: "{{ systemuser }}"
+        group: "{{ systemuser }}"
+        mode: '0777'
+    - name: giving execute permissions
+      ansible.builtin.file:
+        path: "{{ item }}"
+        mode: "+x"
+      with_fileglob:
+        - "/opt/tomcat/latest/bin/*.sh"
+    - name: Copying service file
+      ansible.builtin.template:
+        src: tomcat.service.j2
+        dest: /etc/systemd/system/tomcat.service
+    - name: giving permissions
+      ansible.builtin.file:
+        path: /etc/systemd/system/tomcat.service
+        mode: "+x"
+        owner: "{{ systemuser }}"   
+    - name: tomcat daemon-reload
+      ansible.builtin.systemd:
+        name: tomcat
+        daemon-reload: true
+        enabled: true
+        state: started          
